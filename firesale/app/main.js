@@ -4,7 +4,7 @@ const fs=require('fs');
 let mainWindow = null;
 
 //opening a file since dialog is only available in the main
-const getFileFromUserSelection=()=>{
+const getFileFromUserSelection=exports.getFileFromUserSelection=()=>{
   const files=dialog.showOpenDialog(mainWindow,{
     properties:['openFile'],
     filters:[
@@ -17,7 +17,10 @@ const getFileFromUserSelection=()=>{
 
   const file=files[0];
   const content=fs.readFileSync(file).toString();
-  console.log(content);
+  //console.log(content);
+
+  //sending the file and contents to the renderer process
+  mainWindow.webContents.send('file-opened',file,content);
 }
 
 app.on('ready', () => {

@@ -1,6 +1,10 @@
 //convert markdown to html
 const marked = require('marked');
 
+//for getting the function from main process
+const {remote}= require('electron');
+const mainProcess=remote.require('./main');
+
 const markdownView = document.querySelector('#markdown');
 const htmlView = document.querySelector('#html');
 const newFileButton = document.querySelector('#new-file');
@@ -17,4 +21,8 @@ const renderMarkdownToHtml=(markdown)=>{
 //adding event listener
 markdownView.addEventListener('keyup',(event)=>{
     renderMarkdownToHtml(event.target.value);
-})
+});
+
+openFileButton.addEventListener('click',()=>{
+    mainProcess.getFileFromUserSelection();
+});
