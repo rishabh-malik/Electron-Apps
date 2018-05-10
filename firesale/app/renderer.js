@@ -23,6 +23,7 @@ const renderMarkdownToHtml=(markdown)=>{
 //adding event listener
 markdownView.addEventListener('keyup',(event)=>{
     renderMarkdownToHtml(event.target.value);
+    currentWindow.setDocumentEdited(true);
 });
 
 openFileButton.addEventListener('click',()=>{
@@ -30,7 +31,7 @@ openFileButton.addEventListener('click',()=>{
 });
 
 newFileButton.addEventListener('click',()=>{
-    
+    mainProcess.createWindow();
 })
 
 ipcRenderer.on('file-opened',(event,file,content)=>{

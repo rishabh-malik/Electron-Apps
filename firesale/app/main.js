@@ -14,6 +14,28 @@ const createWindow=exports.createWindow=()=>{
     newWindow.show();
   });
 
+  //event triggered before closing app
+  newWindow.on('close',(event)=>{
+    if(newWindow.isDocumentEdited()){
+      event.preventDefault();
+      const result=dialog.showMessageBox(newWindow,{
+        type:'warning',
+        title:'Quit with unsaved changes?',
+        message:'Your changes will be lost.',
+        buttons:[
+          'Quit Anyway',
+          'Cancel'
+        ],
+        defaultId:1,
+        cancelId:1
+      });
+
+      if(result===0){
+        newWindow.destroy();
+      }
+    }
+  });
+
   newWindow.on('closed', () => {
     windows.delete(newWindow);
     newWindow = null;
@@ -43,6 +65,10 @@ const openFile=exports.openFile=(targetWindow, filePath)=>{
 
   //sending the file and contents to the renderer process
   targetWindow.webContents.send('file-opened',file,content);
+  targetWindow.setTitle(`${file} - Fire Sale`);
+  
+  //only for macos
+  targetWindow.setRepresentedFilename(file);
 }
 
 app.on('ready', () => {
