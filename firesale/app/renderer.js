@@ -15,15 +15,32 @@ const saveMarkdownButton = document.querySelector('#save-markdown');
 const revertButton = document.querySelector('#revert');
 const saveHtmlButton = document.querySelector('#save-html');
 
+let filePath= null;
+let originalContent='';
+
 //render function
 const renderMarkdownToHtml=(markdown)=>{
     htmlView.innerHTML=marked(markdown,{sanitize:true});
 }
 
+const updateEditedState=(isEdited)=>{
+    currentWindow.setDocumentEdited(isEdited);
+
+    saveMarkdownButton.disabled=!isEdited;
+    revertButton.disabled=!isEdited;
+
+    let title='Fire Sale';
+    if(filePath) title=`${filePath} - ${title}`;
+    if(isEdited) title=`${filePath} (Edited)`;
+    currentWindow.setTitle(title);
+}
+
 //adding event listener
 markdownView.addEventListener('keyup',(event)=>{
-    renderMarkdownToHtml(event.target.value);
-    currentWindow.setDocumentEdited(true);
+    const currentContent=event.target.value;
+    renderMarkdownToHtml(currentContent);
+    currentWindow.setDocumentEdited(currentContent !== originalContent);
+    updateEditedState(currentContent !== originalContent);
 });
 
 openFileButton.addEventListener('click',()=>{
@@ -35,6 +52,11 @@ newFileButton.addEventListener('click',()=>{
 })
 
 ipcRenderer.on('file-opened',(event,file,content)=>{
+    filePath=file;
+    originalContent=content;
+
     markdownView.value=content;
     renderMarkdownToHtml(content);
+
+    updateEditedState(false);
 });

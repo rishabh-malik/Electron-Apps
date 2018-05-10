@@ -65,7 +65,6 @@ const openFile=exports.openFile=(targetWindow, filePath)=>{
 
   //sending the file and contents to the renderer process
   targetWindow.webContents.send('file-opened',file,content);
-  targetWindow.setTitle(`${file} - Fire Sale`);
   
   //only for macos
   targetWindow.setRepresentedFilename(file);
