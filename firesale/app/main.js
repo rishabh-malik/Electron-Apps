@@ -15,7 +15,12 @@ const getFileFromUserSelection=exports.getFileFromUserSelection=()=>{
 
   if(!files) return;
 
-  const file=files[0];
+  return files[0];
+ 
+}
+
+const openFile=exports.openFile=(filePath)=>{
+  const file=filePath || getFileFromUserSelection();
   const content=fs.readFileSync(file).toString();
   //console.log(content);
 
