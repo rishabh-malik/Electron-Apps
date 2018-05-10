@@ -1,4 +1,4 @@
-const {app,BrowserWindow} = require('electron');
+const {app,BrowserWindow,remote} = require('electron');
 
 //when app gets ready
 app.on('ready',()=>{
@@ -16,4 +16,6 @@ app.on('ready',()=>{
 
     //load our own page in the window
     mainWindow.loadURL(`file://${__dirname}/index.html`);
+
+    //require('devtron').install();
 });

@@ -4,6 +4,18 @@ const newLinkForm=document.querySelector('.new-link-form');
 const linkTemplate=document.querySelector('#link-template');
 const linkSection=document.querySelector('.links');
 
+const {shell,remote}=require('electron');
+const systemPreferences=remote.systemPreferences;
+console.log(remote,systemPreferences);
+
+//opening the links in actual browser not in our app
+linkSection.addEventListener('click',(event)=>{
+    if(event.target.href){
+        event.preventDefault();
+        shell.openExternal(event.target.href);
+    }
+});
+
 //to see if the url is valid or not
 newLinkUrl.addEventListener('keyup',()=>{
     newLikSubmit.disabled=!newLinkUrl.validity.valid;
@@ -47,4 +59,11 @@ newLinkForm.addEventListener('submit',()=>{
     .then(addToPage)
     .then(title=>console.log(title))
     .catch(error=>console.log(error));
+});
+
+//change sytem preferences
+window.addEventListener('load',()=>{
+    if(systemPreferences.isDarkMode()){
+        document.querySelector('link').href='style-dark.css';
+    }
 });
