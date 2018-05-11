@@ -4,13 +4,14 @@ const fs=require('fs');
 //for multiple windows of our app , set is a data structure
 const windows=new Set();
 
-const createWindow=exports.createWindow=()=>{
+const createWindow=exports.createWindow=(file)=>{
   let newWindow = new BrowserWindow({ show: false });
   windows.add(newWindow);
 
   newWindow.loadURL(`file://${__dirname}/index.html`);
 
   newWindow.once('ready-to-show', () => {
+    if (file) openFile(newWindow,file);
     newWindow.show();
   });
 
@@ -63,6 +64,9 @@ const openFile=exports.openFile=(targetWindow, filePath)=>{
   const content=fs.readFileSync(file).toString();
   //console.log(content);
 
+  //adding to recent files
+  app.addRecentDocument(file);
+
   //sending the file and contents to the renderer process
   targetWindow.webContents.send('file-opened',file,content);
   
@@ -72,4 +76,11 @@ const openFile=exports.openFile=(targetWindow, filePath)=>{
 
 app.on('ready', () => {
   createWindow();
+});
+
+//launching recent files
+app.on('will-finish-launching',()=>{
+  app.on('open-file',(event,filePath)=>{
+    createWindow(filePath);
+  });
 });
