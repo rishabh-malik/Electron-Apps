@@ -74,6 +74,24 @@ const openFile=exports.openFile=(targetWindow, filePath)=>{
   targetWindow.setRepresentedFilename(file);
 }
 
+//saving file
+const saveMarkdown=exports.saveMarkdown=(targetWindow,file,content)=>{
+  if(!file){
+    file=dialog.showSaveDialog(targetWindow,{
+      title:'save markdown',
+      defaultPath:app.getPath('documents'),
+      filters:[
+        {name:'Markdown files',extensions:['md','markdown']}
+      ]
+    });
+  }
+
+  if(!file) return;
+
+  fs.writeFileSync(file,content);
+  targetWindow.webContents.send('file-opened',file,content);
+}
+
 app.on('ready', () => {
   createWindow();
 });
