@@ -3,7 +3,7 @@ const marked = require('marked');
 
 //for getting the function from main process
 //ipcRenderer for listening to main events
-const {remote,ipcRenderer}= require('electron');
+const {remote,ipcRenderer,shell}= require('electron');
 const mainProcess=remote.require('./main');
 const currentWindow=remote.getCurrentWindow();
 
@@ -14,6 +14,8 @@ const openFileButton = document.querySelector('#open-file');
 const saveMarkdownButton = document.querySelector('#save-markdown');
 const revertButton = document.querySelector('#revert');
 const saveHtmlButton = document.querySelector('#save-html');
+const showFileButoon = document.querySelector('#show-file');
+const openInDefaultButton = document.querySelector('#open-in-default');
 
 let filePath= null;
 let originalContent='';
@@ -55,6 +57,14 @@ saveMarkdownButton.addEventListener('click',()=>{
     mainProcess.saveMarkdown(currentWindow,filePath,markdownView.value);
 })
 
+showFileButoon.addEventListener('click',()=>{
+    shell.showItemInFolder(filePath);
+})
+
+openInDefaultButton.addEventListener('click',()=>{
+    shell.openItem(filePath);
+})
+
 ipcRenderer.on('file-opened',(event,file,content)=>{
     filePath=file;
     originalContent=content;
@@ -64,3 +74,13 @@ ipcRenderer.on('file-opened',(event,file,content)=>{
 
     updateEditedState(false);
 });
+
+ipcRenderer.on('file-changed',(event,file,content)=>{
+    filePath=file;
+    originalContent=content;
+
+    markdownView.value=content;
+    renderMarkdownToHtml(content);
+
+    updateEditedState(false);
+})
