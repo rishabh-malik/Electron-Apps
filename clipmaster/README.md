@@ -1,5 +1,11 @@
 # Clipmaster 9000
 
+This is a tutorial for building a clipboard manager using Electron. It is meant to accompany my session on _Building a desktop application with Electron_ ([Part 1][] and [Part 2][]) at [O'Reilly's Fluent Conference 2016][fluent].
+
+[Part 1]: http://conferences.oreilly.com/fluent/javascript-html-us/public/schedule/detail/46730
+[Part 2]: http://conferences.oreilly.com/fluent/javascript-html-us/public/schedule/detail/47788
+[fluent]: http://conferences.oreilly.com/fluent/javascript-html-us
+
 ## Getting Started and Acclimated
 
 To get started, clone this repository and install the dependencies using `npm install`.
@@ -37,7 +43,7 @@ const Menubar = require('menubar');
  [Fire Sale]: https://github.com/stevekinney/firesale-tutorial
 
 ```js
-menubar.on('ready', () => {
+menubar.on('ready', function () {
   console.log('Application is ready.');
 });
 ```
@@ -47,6 +53,7 @@ Let's use `npm start` to verify that it works correctly. The library gives us a 
 ![Cat icon in the menu bar on OS X](images/01-cat-in-menubar.png)
 
 We also get a window correctly positioned above or below—depending on your operating system—the icon, which will load a blank page for starters. This is an instance of `BrowserWindow` as we saw before in [Fire Sale][].
+
 
 ![A correctly placed window appears when we click on the cat](images/02-open-window.gif)
 
@@ -75,7 +82,7 @@ We can make a few assumptions off the bat:
 Let's implement all three in one swift motion:
 
 ```js
-const { clipboard } = require('electron');
+const clipboard = electron.clipboard;
 
 const $clippingsList = $('.clippings-list');
 const $copyFromClipboardButton = $('#copy-from-clipboard');
@@ -90,9 +97,9 @@ const createClippingElement = require('./support/create-clipping-element');
 Spoiler alert: we'll eventually want to trigger reading from the clipboard by other means. So, let's keep break this functionality out into it's own function so that we can use it in multiple places.
 
 ```js
-addClippingToList = () => {
-  const text = clipboard.readText();
-  const $clipping = createClippingElement(text);
+function addClippingToList() {
+  var text = clipboard.readText();
+  var $clipping = createClippingElement(text);
   $clippingsList.append($clipping);
 }
 ```
@@ -107,15 +114,17 @@ If all went well, our `renderer.js` looks something like this:
 
 ```js
 const $ = require('jquery');
-const { clipboard } = require('electron');
+const electron = require('electron');
+
+const clipboard = electron.clipboard;
 
 const $clippingsList = $('.clippings-list');
 const $copyFromClipboardButton = $('#copy-from-clipboard');
 const createClippingElement = require('./support/create-clipping-element');
 
-addClippingToList = () => {
-  const text = clipboard.readText();
-  const $clipping = createClippingElement(text);
+function addClippingToList() {
+  var text = clipboard.readText();
+  var $clipping = createClippingElement(text);
   $clippingsList.append($clipping);
 }
 
@@ -139,17 +148,17 @@ We'll take advantage of [event delegation][], in order to avoid memory leaks. _D
 Let's implement event listeners for all three. We'll use dummy functionality for "copy" and "publish".
 
 ```js
-$clippingsList.on('click', '.remove-clipping', (event) => {
-  $(event.target).parents('.clippings-list-item').remove();
+$clippingsList.on('click', '.remove-clipping', function () {
+  $(this).parents('.clippings-list-item').remove();
 });
 
-$clippingsList.on('click', '.copy-clipping', (event) => {
-  const text = $(event.target).parents('.clippings-list-item').find('.clipping-text').text();
+$clippingsList.on('click', '.copy-clipping', function () {
+  var text = $(this).parents('.clippings-list-item').find('.clipping-text').text();
   console.log('COPY', text);
 });
 
-$clippingsList.on('click', '.publish-clipping', (event) => {
-  const text = $(event.target).parents('.clippings-list-item').find('.clipping-text').text();
+$clippingsList.on('click', '.publish-clipping', function () {
+  var text = $(this).parents('.clippings-list-item').find('.clipping-text').text();
   console.log('PUBLISH', text);
 });
 ```
@@ -163,8 +172,8 @@ Let's head back over to our application to verify that everything works. You can
 In the previous code we just wrote, we were just logging the clipping's contents to the console. Let's write it to the clipboard instead.
 
 ```js
-$clippingsList.on('click', '.copy-clipping', (event) => {
-  const text = $(event.target).parents('.clippings-list-item').find('.clipping-text').text();
+$clippingsList.on('click', '.copy-clipping', function () {
+  var text = $(this).parents('.clippings-list-item').find('.clipping-text').text();
   clipboard.writeText(text);
 });
 ```
@@ -183,17 +192,6 @@ We'll bring in the [Request][] library.
 const request = require('request');
 ```
 
-We're going to be hitting the same endpoint no matter what. So, it makes sense to set some of the details as defaults.
-
-```js
-const request = require('request').defaults({
-  url: 'https://api.github.com/gists',
-  headers: {
-    'User-Agent': 'Clipmaster 9000'
-  }
-});
-```
-
 Now, one of the most dense pieces of code we're going to write today will be the HTTP request. We'll be using [Github's Gist API][gistapi]. We'll need to set three important pieces of information:
 
 [gistApi]: https://developer.github.com/v3/gists/
@@ -206,14 +204,20 @@ Our data will look as follows:
 
 ```js
 {
+  url: 'https://api.github.com/gists',
+  headers: {
+    'User-Agent': 'Clipmaster 9000'
+  },
   body: JSON.stringify({
     description: "Created with Clipmaster 9000",
     public: "true",
     files:{
-      "clipping.txt": { content }
+      "clipping.txt": {
+        content: text
+      }
     }
-  })
-}
+  }
+})
 ```
 
 We'll send that information using `request.post`. Request takes a callback function that it will execute when it hears back from the server. The callback function will be handed three arguments: `error`, `response`, and `body`.
@@ -221,21 +225,26 @@ We'll send that information using `request.post`. Request takes a callback funct
 We'll start by using alerts to notify the user of the success or failure of our API request. We'll also write the URL of the new gist to the clipboard if it was successful.
 
 ```js
-$clippingsList.on('click', '.publish-clipping', () => {
-  const content = $(event.target).parents('.clippings-list-item').find('.clipping-text').text();
+$clippingsList.on('click', '.publish-clipping', function () {
+  var text = $(this).parents('.clippings-list-item').find('.clipping-text').text();
   request.post({
+    url: 'https://api.github.com/gists',
+    headers: {
+      'User-Agent': 'Clipmaster 9000'
+    },
     body: JSON.stringify({
       description: "Created with Clipmaster 9000",
       public: "true",
       files:{
-        "clipping.txt": { content }
+        "clipping.txt": {
+          content: text
+        }
       }
     })
-  },
-  (err, response, body) => {
+  }, function (err, response, body) {
     if (err) { return alert(JSON.parse(err).message); }
 
-    const gistUrl = JSON.parse(body).html_url;
+    var gistUrl = JSON.parse(body).html_url;
     alert(gistUrl);
     clipboard.writeText(gistUrl);
   });
@@ -251,29 +260,33 @@ $clippingsList.on('click', '.publish-clipping', () => {
 Here's a little snipped form the [documentation][notifs] demonstrating how to use notifications.
 
 ```js
-const myNotification = new Notification('Title', {
+var myNotification = new Notification('Title', {
   body: 'Lorem Ipsum Dolor Sit Amet'
 });
 
-myNotification.onclick = () => console.log('Notification clicked');
+myNotification.onclick = function () {
+  console.log('Notification clicked')
+};
 ```
 
 Let's replace our alerts with notifications. We'll be modifying the callback in the Request callback from just a few minutes ago:
 
 ```js
-(err, response, body) => {
+function (err, response, body) {
   if (err) {
     return new Notification('Error Publishing Your Clipping', {
       body: JSON.parse(err).message
     });
   }
 
-  const gistUrl = JSON.parse(body).html_url;
-  const notification = new Notification('Your Clipping Has Been Published', {
+  var gistUrl = JSON.parse(body).html_url;
+  var notification = new Notification('Your Clipping Has Been Published', {
     body: `Click to open ${gistUrl} in your browser.`
   });
 
-  notification.onclick = electron.shell.openExternal(gistUrl);
+  notification.onclick = function () {
+    electron.shell.openExternal(gistUrl);
+  };
 
   clipboard.writeText(gistUrl);
 })
@@ -286,7 +299,7 @@ Electron can register global shortcuts with the operating system. Let's take thi
 We'll start by creating a reference to Electron `globalShortcut` module.
 
 ```js
-const { globalShortcut } = require('electron');
+const globalShortcut = electron.globalShortcut;
 ```
 
 When the `ready` event is fired, we'll register our shortcut.
@@ -295,11 +308,11 @@ When the `ready` event is fired, we'll register our shortcut.
 menubar.on('ready', function () {
   console.log('Application is ready.');
 
-  const createClipping = globalShortcut.register('CommandOrControl+!', () => {
+  var createClipping = globalShortcut.register('CommandOrControl+!', function () {
     console.log('This will eventually trigger creating a new clipping.');
   });
 
-  if (!createClipping) { console.error('Registration failed', 'createClipping'); }
+  if (!createClipping) { console.log('Registration failed', 'createClipping'); }
 });
 ```
 
@@ -308,7 +321,7 @@ In our specific application, all of our clippings are managed by the renderer pr
 Let's modify the event listener to send a message to the renderer process.
 
 ```js
-const createClipping = globalShortcut.register('CommandOrControl+!', () => {
+var createClipping = globalShortcut.register('CommandOrControl+!', function () {
   menubar.window.webContents.send('create-new-clipping');
 });
 ```
@@ -322,7 +335,7 @@ const ipc = electron.ipcRenderer;
 We'll then listen for an event on the `create-new-clipping` channel.
 
 ```js
-ipc.on('create-new-clipping', (event) => {
+ipc.on('create-new-clipping', function (event) {
   addClippingToList();
   new Notification('Clipping Added', {
     body: `${clipboard.readText()}`
@@ -333,11 +346,11 @@ ipc.on('create-new-clipping', (event) => {
 We won't do this now, because it's more of the same. But could add additional shortcuts to our application as well.
 
 ```js
-const copyClipping = globalShortcut.register('CmdOrCtrl+Alt+@', () => {
+var copyClipping = globalShortcut.register('CmdOrCtrl+Alt+@', function () {
   menubar.window.webContents.send('clipping-to-clipboard');
 });
 
-const publishClipping = globalShortcut.register('CmdOrCtrl+Alt+#', () => {
+var publishClipping = globalShortcut.register('CmdOrCtrl+Alt+#', function () {
   menubar.window.webContents.send('publish-clipping');
 });
 ```
