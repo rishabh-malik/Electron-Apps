@@ -4,6 +4,8 @@ const fs=require('fs');
 //for multiple windows of our app , set is a data structure
 const windows=new Set();
 
+const fileWatchers=new Map();
+
 const createWindow=exports.createWindow=(file)=>{
   let newWindow = new BrowserWindow({ show: false });
   windows.add(newWindow);
@@ -39,6 +41,7 @@ const createWindow=exports.createWindow=(file)=>{
 
   newWindow.on('closed', () => {
     windows.delete(newWindow);
+    stopWatchingFile(newWindow);
     newWindow = null;
   });
 }
@@ -67,6 +70,8 @@ const openFile=exports.openFile=(targetWindow, filePath)=>{
   //adding to recent files
   app.addRecentDocument(file);
 
+  startWatchingFile(targetWindow,file);
+
   //sending the file and contents to the renderer process
   targetWindow.webContents.send('file-opened',file,content);
   
@@ -90,6 +95,25 @@ const saveMarkdown=exports.saveMarkdown=(targetWindow,file,content)=>{
 
   fs.writeFileSync(file,content);
   targetWindow.webContents.send('file-opened',file,content);
+}
+
+const startWatchingFile=(targetWindow,file)=>{
+  stopWatchingFile(targetWindow);
+
+  const watcher=fs.watch(file,(event)=>{
+    if(event==='change'){
+      const content=fs.readFileSync(file).toString();
+      targetWindow.webContents.send('file-changed',file,content);
+    }
+  });
+  fileWatchers.set(targetWindow,watcher);
+}
+
+const stopWatchingFile=(targetWindow)=>{
+  if(fileWatchers.has(targetWindow)){
+    fileWatchers.get(targetWindow).close();
+    fileWatchers.delete(targetWindow);
+  }
 }
 
 app.on('ready', () => {
